@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 import logging
-import re
 
 import selenium.common.exceptions
 from openpyxl import Workbook
@@ -11,7 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 
 bbc_link = 'https://www.bbc.com/'
-timeout = 6
+timeout = 3
 
 debug_type = ''
 link_debug = ''
@@ -72,8 +71,15 @@ def get_bbc_info(driver, link):
         if link_type != debug_type:
             return link, 'Debug SKIP', 'Debug SKIP'
     heading_info = link_heading_info(link_type)
+    while True:
+        try:
+            driver.get(link)
+            break
+        except selenium.common.exceptions.TimeoutException:
+            continue
+        except Exception:
+            break
 
-    driver.get(link)
     t = timeout
     heading = ''
     tries = 1
@@ -88,7 +94,6 @@ def get_bbc_info(driver, link):
             t = 1
             if tries == 5:
                 break
-            logging.warning("Couldn't find heading, trying again with generic header")
             heading_info = (By.TAG_NAME, 'h'+str(tries))
             tries = tries+1
     if heading == '' or heading == 'Accessibility links':
@@ -233,9 +238,6 @@ def save_news(info):
             ws.append([i[0], i[1], i[2]])
         except Exception as e:
             logging.warning('Exception saving link:' + i[0])
-            logging.warning('heading:' + i[1])
-            logging.warning('data:' + i[2])
-            logging.warning(e)
 
     wb.save("output.xlsx")
 
